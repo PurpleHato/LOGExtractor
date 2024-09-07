@@ -104,6 +104,7 @@ namespace MapViewer
                     }
                 }
 
+                // Draw the green boundary rectangle
                 g.DrawRectangle(new Pen(Color.Green, 2), 0, 0, width, height);
             }
             catch (Exception ex)
@@ -249,17 +250,37 @@ namespace MapViewer
             SaveMapImages(UxMapList.SelectedIndex);
         }
 
+        private bool isExportingAll = false; // Flag to indicate if exporting is in progress
+
         private void UxSaveAllButton_Click(object sender, EventArgs e)
         {
             if (rom == null) return;
+            if (isExportingAll) return; // Prevent re-entry if already exporting
 
-            // Iterate through all maps using a for loop
-            for (int i = 0; i < UxMapList.Items.Count; i++)
+            isExportingAll = true; // Set the flag to true to indicate export started
+
+            try
             {
-                // Save images for each map by passing its index
-                SaveMapImages(i);
+                // Iterate through all maps using a for loop
+                for (int i = 0; i < UxMapList.Items.Count; i++)
+                {
+                    // Select the map in the list to refresh the data
+                    UxMapList.SelectedIndex = i;
+
+                    // Save images for each map by passing its index
+                    SaveMapImages(i);
+                }
+
+                // Show a message box after all maps have been processed
+                MessageBox.Show("Done", "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            finally
+            {
+                isExportingAll = false; // Reset the flag to false to indicate export is done
             }
         }
+
+
 
         // Method to save images for a specific map based on its index
         private void SaveMapImages(int mapIndex)
@@ -298,35 +319,44 @@ namespace MapViewer
                 var layer2 = MapRenderer.DrawLayer(rom, rom.ReadPointer(), tilesets);
                 var layer3 = MapRenderer.DrawLayer(rom, rom.ReadPointer(), tilesets);
 
+                // Read the map size for dynamic cropping
+                rom.Seek(mapOffset + 0x8);
+                int width = rom.ReadShort() + 240 - 1;
+                int height = rom.ReadShort() + 160 - 1;
+
                 // Save the current toggle states
                 bool bg0State = UxBG0Toggle.Checked;
                 bool bg1State = UxBG1Toggle.Checked;
                 bool bg2State = UxBG2Toggle.Checked;
                 bool bg3State = UxBG3Toggle.Checked;
 
-                // Save each layer individually
+                // Check if cropping is enabled
+                bool shouldCrop = UxCropCheckBox.Checked;
+                Rectangle cropRect = new Rectangle(0, 0, width, height); // Use dynamic width and height
+
+                // Crop and save each layer individually
                 SetToggleState(false, false, false, true); // Only UxBG3Toggle enabled
-                SaveLayerImage(layer3, $"{mapName}_BG3", basePath);
+                SaveLayerImage(shouldCrop ? CropImage(layer3, cropRect) : layer3, $"{mapName}_BG3", basePath);
 
                 SetToggleState(false, false, true, false); // Only UxBG2Toggle enabled
-                SaveLayerImage(layer2, $"{mapName}_BG2", basePath);
+                SaveLayerImage(shouldCrop ? CropImage(layer2, cropRect) : layer2, $"{mapName}_BG2", basePath);
 
                 SetToggleState(false, true, false, false); // Only UxBG1Toggle enabled
-                SaveLayerImage(layer1, $"{mapName}_BG1", basePath);
+                SaveLayerImage(shouldCrop ? CropImage(layer1, cropRect) : layer1, $"{mapName}_BG1", basePath);
 
                 SetToggleState(true, false, false, false); // Only UxBG0Toggle enabled
-                SaveLayerImage(layer0, $"{mapName}_BG0", basePath);
+                SaveLayerImage(shouldCrop ? CropImage(layer0, cropRect) : layer0, $"{mapName}_BG0", basePath);
 
                 // Create and save the combined image
                 SetToggleState(true, true, true, true); // All toggles enabled
 
-                Bitmap combinedImage = new Bitmap(layer0.Width, layer0.Height);
+                Bitmap combinedImage = new Bitmap(cropRect.Width, cropRect.Height);
                 using (Graphics g = Graphics.FromImage(combinedImage))
                 {
-                    if (UxBG3Toggle.Checked) g.DrawImage(layer3, 0, 0);
-                    if (UxBG2Toggle.Checked) g.DrawImage(layer2, 0, 0);
-                    if (UxBG1Toggle.Checked) g.DrawImage(layer1, 0, 0);
-                    if (UxBG0Toggle.Checked) g.DrawImage(layer0, 0, 0);
+                    if (UxBG3Toggle.Checked) g.DrawImage(CropImage(layer3, cropRect), 0, 0);
+                    if (UxBG2Toggle.Checked) g.DrawImage(CropImage(layer2, cropRect), 0, 0);
+                    if (UxBG1Toggle.Checked) g.DrawImage(CropImage(layer1, cropRect), 0, 0);
+                    if (UxBG0Toggle.Checked) g.DrawImage(CropImage(layer0, cropRect), 0, 0);
                 }
                 combinedImage.Save(Path.Combine(basePath, $"{mapName}_complete.png"), System.Drawing.Imaging.ImageFormat.Png);
 
@@ -338,6 +368,7 @@ namespace MapViewer
                 MessageBox.Show($"Error saving images for map {mapName}: {ex.Message}");
             }
         }
+
 
         // Helper method to save the tileset image
         private void SaveTilesetImage(Dictionary<Range, Bitmap> tilesets, string name, string basePath)
@@ -355,6 +386,17 @@ namespace MapViewer
             if (layer == null) return;
             string filePath = Path.Combine(basePath, $"{name}.png");
             layer.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+        }
+
+        // Helper method to crop an image
+        private Bitmap CropImage(Bitmap source, Rectangle cropRect)
+        {
+            Bitmap croppedImage = new Bitmap(cropRect.Width, cropRect.Height);
+            using (Graphics g = Graphics.FromImage(croppedImage))
+            {
+                g.DrawImage(source, new Rectangle(0, 0, cropRect.Width, cropRect.Height), cropRect, GraphicsUnit.Pixel);
+            }
+            return croppedImage;
         }
 
         // Helper method to set the toggle states

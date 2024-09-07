@@ -49,6 +49,7 @@
             statusStrip1 = new StatusStrip();
             UxTotalMapsLabel = new ToolStripStatusLabel();
             UxMapOffsetLabel = new ToolStripStatusLabel();
+            UxCropCheckBox = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
@@ -83,6 +84,7 @@
             // 
             // splitContainer1.Panel2
             // 
+            splitContainer1.Panel2.Controls.Add(UxCropCheckBox);
             splitContainer1.Panel2.Controls.Add(UxSaveAllButton);
             splitContainer1.Panel2.Controls.Add(UxSaveButton);
             splitContainer1.Panel2.Controls.Add(UxMapCanvas);
@@ -278,6 +280,19 @@
             UxMapOffsetLabel.Size = new Size(137, 17);
             UxMapOffsetLabel.Text = "Selected Map Offset: 0x0";
             // 
+            // UxCropCheckBox
+            // 
+            UxCropCheckBox.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            UxCropCheckBox.AutoSize = true;
+            UxCropCheckBox.Checked = true;
+            UxCropCheckBox.CheckState = CheckState.Checked;
+            UxCropCheckBox.Location = new Point(561, 469);
+            UxCropCheckBox.Name = "UxCropCheckBox";
+            UxCropCheckBox.Size = new Size(52, 19);
+            UxCropCheckBox.TabIndex = 1000;
+            UxCropCheckBox.Text = "Crop";
+            UxCropCheckBox.UseVisualStyleBackColor = true;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -324,5 +339,6 @@
         private ToolStripButton UxResetView;
         private Button UxSaveButton;
         private Button UxSaveAllButton;
+        private CheckBox UxCropCheckBox;
     }
 }
