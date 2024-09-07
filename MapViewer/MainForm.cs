@@ -23,6 +23,10 @@ namespace MapViewer
             UxMapCanvas.Paint += UxMapCanvas_Paint;
             UxMapCanvas.ZoomChanged += UxMapCanvas_ZoomChanged;
 
+            // Event handlers for the save buttons
+            UxSaveButton.Click += UxSaveButton_Click;
+            UxSaveAllButton.Click += UxSaveAllButton_Click;
+
             UxZoomOption.Items.Clear();
             foreach (var mode in Canvas.ZoomModes)
             {
@@ -115,7 +119,7 @@ namespace MapViewer
             int count = rom.ReadInt();
             if (count == 0)
             {
-                return [];
+                return new List<MapConnector>();
             }
 
             var list = new List<MapConnector>();
@@ -133,7 +137,7 @@ namespace MapViewer
                 int destId = rom.ReadShortBigEndian();
                 rom.PopPosition();
 
-                list.Add(new(left, top, right, bottom, destId));
+                list.Add(new MapConnector(left, top, right, bottom, destId));
             }
 
             return list;
@@ -235,6 +239,131 @@ namespace MapViewer
             {
                 ReadMapsFromROM(files[0]);
             }
+        }
+
+        // Event handler for saving images of the currently selected map
+        private void UxSaveButton_Click(object sender, EventArgs e)
+        {
+            if (rom == null || selectedMapItem == null) return;
+
+            SaveMapImages(UxMapList.SelectedIndex);
+        }
+
+        private void UxSaveAllButton_Click(object sender, EventArgs e)
+        {
+            if (rom == null) return;
+
+            // Iterate through all maps using a for loop
+            for (int i = 0; i < UxMapList.Items.Count; i++)
+            {
+                // Save images for each map by passing its index
+                SaveMapImages(i);
+            }
+        }
+
+        // Method to save images for a specific map based on its index
+        private void SaveMapImages(int mapIndex)
+        {
+            if (rom == null) return;
+
+            // Select the map item at the given index without affecting the UI selection
+            if (UxMapList.Items[mapIndex] is not MapItem mapItem) return;
+
+            string mapName = mapItem.DisplayName.Split(':')[1].Trim();
+
+            if (string.IsNullOrEmpty(mapName))
+            {
+                mapName = mapIndex.ToString();
+            }
+
+            // Create a directory named after the index and map name
+            string basePath = Path.Combine(Application.StartupPath, "maps", $"{mapIndex}_{mapName}");
+            Directory.CreateDirectory(basePath);
+
+            try
+            {
+                // Retrieve the image layers from the ROM
+                rom.Seek(mapItem.Offset + 0x2C);
+                rom.Seek(rom.ReadPointer());
+                int mapOffset = rom.ReadPointer();
+
+                // Retrieve and save the tileset
+                var tilesets = MapRenderer.DrawTileset(rom, mapOffset);
+                SaveTilesetImage(tilesets, $"{mapName}_tileset", basePath);
+
+                // Draw the layers
+                rom.Seek(mapOffset + 0x14);
+                var layer0 = MapRenderer.DrawLayer(rom, rom.ReadPointer(), tilesets);
+                var layer1 = MapRenderer.DrawLayer(rom, rom.ReadPointer(), tilesets);
+                var layer2 = MapRenderer.DrawLayer(rom, rom.ReadPointer(), tilesets);
+                var layer3 = MapRenderer.DrawLayer(rom, rom.ReadPointer(), tilesets);
+
+                // Save the current toggle states
+                bool bg0State = UxBG0Toggle.Checked;
+                bool bg1State = UxBG1Toggle.Checked;
+                bool bg2State = UxBG2Toggle.Checked;
+                bool bg3State = UxBG3Toggle.Checked;
+
+                // Save each layer individually
+                SetToggleState(false, false, false, true); // Only UxBG3Toggle enabled
+                SaveLayerImage(layer3, $"{mapName}_BG3", basePath);
+
+                SetToggleState(false, false, true, false); // Only UxBG2Toggle enabled
+                SaveLayerImage(layer2, $"{mapName}_BG2", basePath);
+
+                SetToggleState(false, true, false, false); // Only UxBG1Toggle enabled
+                SaveLayerImage(layer1, $"{mapName}_BG1", basePath);
+
+                SetToggleState(true, false, false, false); // Only UxBG0Toggle enabled
+                SaveLayerImage(layer0, $"{mapName}_BG0", basePath);
+
+                // Create and save the combined image
+                SetToggleState(true, true, true, true); // All toggles enabled
+
+                Bitmap combinedImage = new Bitmap(layer0.Width, layer0.Height);
+                using (Graphics g = Graphics.FromImage(combinedImage))
+                {
+                    if (UxBG3Toggle.Checked) g.DrawImage(layer3, 0, 0);
+                    if (UxBG2Toggle.Checked) g.DrawImage(layer2, 0, 0);
+                    if (UxBG1Toggle.Checked) g.DrawImage(layer1, 0, 0);
+                    if (UxBG0Toggle.Checked) g.DrawImage(layer0, 0, 0);
+                }
+                combinedImage.Save(Path.Combine(basePath, $"{mapName}_complete.png"), System.Drawing.Imaging.ImageFormat.Png);
+
+                // Restore the original toggle states
+                SetToggleState(bg0State, bg1State, bg2State, bg3State);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error saving images for map {mapName}: {ex.Message}");
+            }
+        }
+
+        // Helper method to save the tileset image
+        private void SaveTilesetImage(Dictionary<Range, Bitmap> tilesets, string name, string basePath)
+        {
+            foreach (var tileset in tilesets)
+            {
+                string filePath = Path.Combine(basePath, $"{name}_{tileset.Key.Start.Value}-{tileset.Key.End.Value}.png");
+                tileset.Value.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+            }
+        }
+
+        // Helper method to save a single layer image
+        private void SaveLayerImage(Bitmap layer, string name, string basePath)
+        {
+            if (layer == null) return;
+            string filePath = Path.Combine(basePath, $"{name}.png");
+            layer.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+        }
+
+        // Helper method to set the toggle states
+        private void SetToggleState(bool bg0, bool bg1, bool bg2, bool bg3)
+        {
+            UxBG0Toggle.Checked = bg0;
+            UxBG1Toggle.Checked = bg1;
+            UxBG2Toggle.Checked = bg2;
+            UxBG3Toggle.Checked = bg3;
         }
     }
 }

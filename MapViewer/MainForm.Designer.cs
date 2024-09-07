@@ -31,6 +31,8 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             UxMapList = new ListBox();
             splitContainer1 = new SplitContainer();
+            UxSaveAllButton = new Button();
+            UxSaveButton = new Button();
             UxMapCanvas = new Canvas();
             toolStrip1 = new ToolStrip();
             toolStripLabel1 = new ToolStripLabel();
@@ -65,7 +67,7 @@
             UxMapList.Location = new Point(0, 0);
             UxMapList.Name = "UxMapList";
             UxMapList.ScrollAlwaysVisible = true;
-            UxMapList.Size = new Size(198, 559);
+            UxMapList.Size = new Size(173, 559);
             UxMapList.TabIndex = 0;
             UxMapList.SelectedIndexChanged += UxMapList_SelectedIndexChanged;
             // 
@@ -81,11 +83,33 @@
             // 
             // splitContainer1.Panel2
             // 
+            splitContainer1.Panel2.Controls.Add(UxSaveAllButton);
+            splitContainer1.Panel2.Controls.Add(UxSaveButton);
             splitContainer1.Panel2.Controls.Add(UxMapCanvas);
             splitContainer1.Panel2.Controls.Add(toolStrip1);
             splitContainer1.Size = new Size(802, 559);
-            splitContainer1.SplitterDistance = 198;
+            splitContainer1.SplitterDistance = 173;
             splitContainer1.TabIndex = 999;
+            // 
+            // UxSaveAllButton
+            // 
+            UxSaveAllButton.Location = new Point(556, 494);
+            UxSaveAllButton.Name = "UxSaveAllButton";
+            UxSaveAllButton.Size = new Size(57, 23);
+            UxSaveAllButton.TabIndex = 1001;
+            UxSaveAllButton.Text = "All";
+            UxSaveAllButton.UseVisualStyleBackColor = true;
+            UxSaveAllButton.Click += UxSaveAllButton_Click;
+            // 
+            // UxSaveButton
+            // 
+            UxSaveButton.Location = new Point(556, 523);
+            UxSaveButton.Name = "UxSaveButton";
+            UxSaveButton.Size = new Size(57, 23);
+            UxSaveButton.TabIndex = 1000;
+            UxSaveButton.Text = "png";
+            UxSaveButton.UseVisualStyleBackColor = true;
+            UxSaveButton.Click += UxSaveButton_Click;
             // 
             // UxMapCanvas
             // 
@@ -93,7 +117,7 @@
             UxMapCanvas.Dock = DockStyle.Fill;
             UxMapCanvas.Location = new Point(0, 25);
             UxMapCanvas.Name = "UxMapCanvas";
-            UxMapCanvas.Size = new Size(600, 534);
+            UxMapCanvas.Size = new Size(625, 534);
             UxMapCanvas.TabIndex = 2;
             UxMapCanvas.TabStop = false;
             UxMapCanvas.ZoomMode = 1;
@@ -106,7 +130,7 @@
             toolStrip1.Location = new Point(0, 0);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.Padding = new Padding(5, 0, 1, 0);
-            toolStrip1.Size = new Size(600, 25);
+            toolStrip1.Size = new Size(625, 25);
             toolStrip1.TabIndex = 1;
             // 
             // toolStripLabel1
@@ -298,5 +322,7 @@
         private ToolStripButton UxBG0Toggle;
         private Canvas UxMapCanvas;
         private ToolStripButton UxResetView;
+        private Button UxSaveButton;
+        private Button UxSaveAllButton;
     }
 }

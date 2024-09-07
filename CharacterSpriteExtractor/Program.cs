@@ -1,7 +1,8 @@
 using LOGExtractor.Gba;
 using System;
 using System.Diagnostics;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Drawing;
+using System.IO;
 
 namespace CharacterSpriteExtractor
 {
@@ -18,7 +19,7 @@ namespace CharacterSpriteExtractor
             const int text_table_addr = 0x06bce8;
 
             const int char_count = 232;
-            string[] anim_names = ["stand", "walk", "run", "attack1", "attack2", "attack3", "attack4", "block", "idle", "hurt", "transform", "unknown1", "arms_up", "pickup", "takeoff", "flying", "mode7_fly", "dead", "special", "teleport", "unknown4", "fusion", "unknown5"];
+            string[] anim_names = { "stand", "walk", "run", "attack1", "attack2", "attack3", "attack4", "block", "idle", "hurt", "transform", "unknown1", "arms_up", "pickup", "takeoff", "flying", "mode7_fly", "dead", "special", "teleport", "unknown4", "fusion", "unknown5" };
 
             string outRoot = Path.Combine(Environment.CurrentDirectory, "characters");
 
@@ -64,7 +65,7 @@ namespace CharacterSpriteExtractor
                     {
                         rom.PushPosition(rom.ReadPointer());
                         int numberOfParts = rom.ReadInt();
-                        int padX = rom.ReadByte();     // not really sure what this is for
+                        int padX = rom.ReadByte();
                         int padY = rom.ReadByte();
                         int frameWidth = rom.ReadByte();
                         int frameHeight = rom.ReadByte();
@@ -98,11 +99,14 @@ namespace CharacterSpriteExtractor
 
                             frames[f] = frameImage;
                         }
-                        
+
                         rom.PopPosition();
                     }
 
-                    CreateAnimStrip(frames).Save(Path.Combine(outDirectory, $"{anim_names[a]}.png"));
+                    // Reorganize frames by direction
+                    var organizedFrames = ReorganizeFrames(frames, numberOfFrames);
+
+                    CreateAnimStrip(organizedFrames).Save(Path.Combine(outDirectory, $"{anim_names[a]}.png"));
 
                     rom.PopPosition();
                 }
@@ -113,8 +117,25 @@ namespace CharacterSpriteExtractor
                     var portraitImage = CreateImage(portraitBytes, 64, 64, 64, false, palette);
                     portraitImage.Save(Path.Combine(outDirectory, "portrait.png"));
                 }
-
             }
+        }
+
+        private static Bitmap[] ReorganizeFrames(Bitmap[] frames, int numberOfFrames)
+        {
+            int directions = 4; // Assume 4 directions: up, down, left, right
+            int framesPerDirection = numberOfFrames / directions;
+
+            var organizedFrames = new Bitmap[numberOfFrames];
+
+            for (int i = 0; i < framesPerDirection; i++)
+            {
+                for (int d = 0; d < directions; d++)
+                {
+                    organizedFrames[d * framesPerDirection + i] = frames[i * directions + d];
+                }
+            }
+
+            return organizedFrames;
         }
 
         private static Bitmap CreateAnimStrip(Bitmap[] frames)
