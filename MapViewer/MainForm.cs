@@ -33,6 +33,33 @@ namespace MapViewer
                 UxZoomOption.Items.Add($"{(mode * 100f)}%");
             }
             UxZoomOption.SelectedIndex = UxMapCanvas.ZoomMode;
+
+            AutoLoadRomFile();
+        }
+
+        private void AutoLoadRomFile()
+        {
+            string executableFolder = Application.StartupPath;
+            string[] romFiles = Directory.GetFiles(executableFolder, "*.gba");
+
+            if (romFiles.Length == 1)
+            {
+                ReadMapsFromROM(romFiles[0]);
+            }
+            else if (romFiles.Length > 1)
+            {
+                using (OpenFileDialog ofd = new OpenFileDialog())
+                {
+                    ofd.Filter = "GBA ROM Files (*.gba)|*.gba";
+                    ofd.Title = "Select a GBA ROM File";
+                    ofd.InitialDirectory = executableFolder;
+
+                    if (ofd.ShowDialog() == DialogResult.OK)
+                    {
+                        ReadMapsFromROM(ofd.FileName);
+                    }
+                }
+            }
         }
 
         private void UxMapCanvas_ZoomChanged(int newZoom)
@@ -250,37 +277,18 @@ namespace MapViewer
             SaveMapImages(UxMapList.SelectedIndex);
         }
 
-        private bool isExportingAll = false; // Flag to indicate if exporting is in progress
-
         private void UxSaveAllButton_Click(object sender, EventArgs e)
         {
             if (rom == null) return;
-            if (isExportingAll) return; // Prevent re-entry if already exporting
 
-            isExportingAll = true; // Set the flag to true to indicate export started
-
-            try
+            for (int i = 0; i < UxMapList.Items.Count; i++)
             {
-                // Iterate through all maps using a for loop
-                for (int i = 0; i < UxMapList.Items.Count; i++)
-                {
-                    // Select the map in the list to refresh the data
-                    UxMapList.SelectedIndex = i;
-
-                    // Save images for each map by passing its index
-                    SaveMapImages(i);
-                }
-
-                // Show a message box after all maps have been processed
-                MessageBox.Show("Done", "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                UxMapList.SelectedIndex = i;
+                SaveMapImages(i);
             }
-            finally
-            {
-                isExportingAll = false; // Reset the flag to false to indicate export is done
-            }
+
+            MessageBox.Show("Done", "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
-
-
 
         // Method to save images for a specific map based on its index
         private void SaveMapImages(int mapIndex)
@@ -368,7 +376,6 @@ namespace MapViewer
                 MessageBox.Show($"Error saving images for map {mapName}: {ex.Message}");
             }
         }
-
 
         // Helper method to save the tileset image
         private void SaveTilesetImage(Dictionary<Range, Bitmap> tilesets, string name, string basePath)
